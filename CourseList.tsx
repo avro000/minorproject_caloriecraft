@@ -8,36 +8,38 @@ import { Button } from "./components/ui/button";
 import { AlertCircle, FilePenLine, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
+import { TbCloudOff } from "react-icons/tb";
+import { AiOutlineCloudUpload } from "react-icons/ai";
 
 interface Video {
     title: string;
     description: string;
     url: string;
-  }
-  
-  interface Subtopic {
+}
+
+interface Subtopic {
     name: string;
     videos: Video[];
-  }
-  
-  interface Topic {
+}
+
+interface Topic {
     name: string;
     subtopics: Subtopic[];
-  }
-  
-  interface StudyMaterial {
+}
+
+interface StudyMaterial {
     name: string;
     fileName: string;
     fileUrl: string;
     downloadUrl: string;
-  }
-  
-  interface CourseOptions {
+}
+
+interface CourseOptions {
     benefits: string;
     prerequisites: string;
-  }
-  
-  interface Course {
+}
+
+interface Course {
     courseId: number;
     title: string;
     description: string;
@@ -45,13 +47,15 @@ interface Video {
     category: string;
     instructorEmail: string;
     thumbnailUrl: string;
+    thumbnail: File | null;
     level: string;
     language: string;
     topics: Topic[];
     courseOptions: CourseOptions;
     studyMaterials: StudyMaterial[];
-  }
-  
+    published: boolean;
+}
+
 interface Instructor {
     sub: string;
     name: string;
@@ -61,7 +65,6 @@ interface Instructor {
 interface CourseListProps {
     onEdit: (course: Course) => void;
 }
-
 
 const CourseList: React.FC<CourseListProps> = ({ onEdit }) => {
     const [courses, setCourses] = useState<Course[]>([]);
@@ -132,6 +135,93 @@ const CourseList: React.FC<CourseListProps> = ({ onEdit }) => {
             });
     };
 
+    const handlePublish = (courseId: number) => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            console.error("No token found.");
+            return;
+        }
+
+        axios
+            .patch(
+                `http://localhost:9092/auth/courses/${courseId}/publish`,
+                { published: true },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+            .then((response) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.courseId === courseId ? { ...course, published: true } : course
+                    )
+                );
+                toast.success("Course published", {
+                    description: response.data,
+                    style: {
+                        backgroundColor: "#16a34a",
+                        color: "white",
+                    },
+                });
+            })
+            .catch((error) => {
+                toast.error("Error publishing course", {
+                    description: error.response?.data || "Please try again.",
+                    style: {
+                        backgroundColor: "#dc2626",
+                        color: "white",
+                    },
+                });
+            });
+    };
+
+    const handleUnpublish = (courseId: number) => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            console.error("No token found.");
+            return;
+        }
+
+        axios
+            .patch(
+                `http://localhost:9092/auth/courses/${courseId}/publish`,
+                { published: false },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+            .then((response) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.courseId === courseId ? { ...course, published: false } : course
+                    )
+                );
+                toast.success("Course unpublished", {
+                    description: response.data,
+                    style: {
+                        backgroundColor: "#f97316",
+                        color: "white",
+                    },
+                });
+            })
+            .catch((error) => {
+                toast.error("Error unpublishing course", {
+                    description: error.response?.data || "Please try again.",
+                    style: {
+                        backgroundColor: "#dc2626",
+                        color: "white",
+                    },
+                });
+            });
+
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.length > 0 ? (
@@ -175,10 +265,9 @@ const CourseList: React.FC<CourseListProps> = ({ onEdit }) => {
                                     </span>
                                 </div>
                                 <div>
-                                    <Button onClick={() => onEdit(course)}>
+                                    <Button variant="outline" onClick={() => onEdit(course)}>
                                         <FilePenLine /> Edit
                                     </Button>
-
                                 </div>
                                 <div>
                                     <Button
@@ -190,6 +279,16 @@ const CourseList: React.FC<CourseListProps> = ({ onEdit }) => {
                                     </Button>
                                 </div>
                             </div>
+                            <div className="flex justify-center items-center">
+                                <Button
+                                    variant="secondary"
+                                    className="w-full"
+                                    onClick={() => (course.published ? handleUnpublish(course.courseId) : handlePublish(course.courseId))}
+                                >
+                                    {course.published ? <><TbCloudOff /> Unpublish</> : <><AiOutlineCloudUpload /> Publish</>}
+                                </Button>
+
+                            </div>
                         </CardContent>
                     </Card>
                 ))
@@ -197,9 +296,7 @@ const CourseList: React.FC<CourseListProps> = ({ onEdit }) => {
                 <Alert className="border-red-500 text-red-500">
                     <AlertCircle />
                     <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                        No course available.
-                    </AlertDescription>
+                    <AlertDescription>No course available.</AlertDescription>
                 </Alert>
             )}
         </div>

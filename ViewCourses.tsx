@@ -53,12 +53,14 @@ interface Course {
   price: number;
   category: string;
   instructorEmail: string;
+  thumbnail: File | null;
   thumbnailUrl: string;
   level: string;
   language: string;
   topics: Topic[];
   courseOptions: CourseOptions;
   studyMaterials: StudyMaterial[];
+  published: boolean;
 }
 
 
